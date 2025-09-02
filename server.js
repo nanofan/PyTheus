@@ -6,6 +6,9 @@ import cors from 'cors';
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const upload = multer();
 
 function extractVideoId(url) {
@@ -54,6 +57,7 @@ app.post('/api/quiz', upload.single('pdf'), async (req, res) => {
     }
     res.json({ questions });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Processing failed' });
   }
 });
