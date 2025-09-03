@@ -1,3 +1,4 @@
+// server.js
 import express from 'express';
 import multer from 'multer';
 import pdfParse from 'pdf-parse';
@@ -23,6 +24,7 @@ function generateQuestions(text) {
     .split(/[.!?]/)
     .map((s) => s.trim())
     .filter(Boolean);
+
   const questions = [];
   for (let i = 0; i < Math.min(10, sentences.length); i++) {
     const words = sentences[i].split(' ');
@@ -39,6 +41,7 @@ function generateQuestions(text) {
 app.post('/api/quiz', upload.single('pdf'), async (req, res) => {
   try {
     let text = '';
+
     if (req.body.youtubeLink) {
       const id = extractVideoId(req.body.youtubeLink);
       if (!id) return res.status(400).json({ error: 'Invalid YouTube link' });
@@ -48,19 +51,39 @@ app.post('/api/quiz', upload.single('pdf'), async (req, res) => {
       const data = await pdfParse(req.file.buffer);
       text = data.text;
     } else {
-      return res.status(400).json({ error: 'No input provided' });
-    }
+      return res.status(400).json({ error: 'No in
 
-    const questions = generateQuestions(text);
-    if (questions.length === 0) {
-      return res.status(400).json({ error: 'Could not generate questions' });
-    }
-    res.json({ questions });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Processing failed' });
+function generateQuestions(text) {
+  const sentences = text
+    .replace(/\s+/g, ' ')
+    .split(/[.!?]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const questions = [];
+  for (let i = 0; i < Math.min(10, sentences.length); i++) {
+    const words = sentences[i].split(' ');
+    if (words.length < 2) continue;
+    const answer = words.pop();
+    questions.push({
+      question: words.join(' ') + ' ...?',
+      answer
+    });
   }
-});
+  return questions;
+}
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.post('/api/quiz', upload.single('pdf'), async (req, res) => {
+  try {
+    let text = '';
+
+    if (req.body.youtubeLink) {
+      const id = extractVideoId(req.body.youtubeLink);
+      if (!id) return res.status(400).json({ error: 'Invalid YouTube link' });
+      const transcript = await YoutubeTranscript.fetchTranscript(id);
+      text = transcript.map((t) => t.text).join(' ');
+    } else if (req.file) {
+      const data = await pdfParse(req.file.buffer);
+      text = data.text;
+    } else {
+      return res.status(400).json({ error: 'No in
